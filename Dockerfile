@@ -18,13 +18,16 @@ RUN git clone https://github.com/microsoft/vcpkg /vcpkg \
 
 WORKDIR /build/cg-discordgo
 
-# The assumed path (dave/libdave/cpp/) turned up nothing on the first
-# inspection pass -- cat produced no output for either Makefile or
-# vcpkg.json, meaning neither exists there. Find out what's actually
-# in this checkout instead of guessing again.
-RUN echo "=== dave/ directory tree (3 levels) ===" && find dave -maxdepth 3 2>&1; \
-    echo "=== git submodule status ===" && git submodule status 2>&1; \
-    echo "=== searching whole repo for Makefile/vcpkg.json ===" && find . -iname "Makefile" -o -iname "vcpkg.json" 2>&1
+# Found on the last inspection pass: a real Makefile exists at
+# dave/libdave/cpp/Makefile, and there's no single root vcpkg.json --
+# instead backend-specific manifests live under vcpkg-alts/<backend>/.
+# libdave also vendors its own pinned copy of vcpkg at cpp/vcpkg/ rather
+# than using whatever unpinned version we clone separately. Read the
+# Makefile itself and list the backend options before guessing further.
+RUN echo "=== Makefile content ===" && cat dave/libdave/cpp/Makefile 2>&1; \
+    echo "=== vcpkg-alts backend options ===" && ls -la dave/libdave/cpp/vcpkg-alts/ 2>&1; \
+    echo "=== cpp/ top-level contents ===" && ls -la dave/libdave/cpp/ 2>&1; \
+    echo "=== is vcpkg vendored as its own submodule? ===" && git config --file dave/libdave/.gitmodules --get-regexp path 2>&1
 
 # --- Full build (commented out for the inspection pass) ---
 # Uncomment once Phase 3's inspection output confirms the cmake path below
