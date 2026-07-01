@@ -1,0 +1,44 @@
+name: Build libdave for armv7
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build armv7 container
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/arm/v7
+          tags: libdave-builder:latest
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract build artifacts
+        run: |
+          docker create --name extract --platform linux/arm/v7 libdave-builder:latest
+          mkdir -p out/build out/headers
+          docker cp extract:/build/cg-discordgo/dave/libdave/cpp/build out/build
+          docker cp extract:/build/cg-discordgo/dave/libdave/cpp/includes out/headers
+          docker rm extract
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: libdave-armv7
+          path: out/
+          retention-days: 14
