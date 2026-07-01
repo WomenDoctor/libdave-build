@@ -16,11 +16,15 @@ ENV VCPKG_FORCE_SYSTEM_BINARIES=1
 RUN git clone https://github.com/microsoft/vcpkg /vcpkg \
     && /vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
-WORKDIR /build/cg-discordgo/dave/libdave/cpp
+WORKDIR /build/cg-discordgo
 
-# Inspection pass: confirm what actually ships in this directory before
-# committing to a manual cmake invocation. See Phase 3 of the guide.
-RUN cat Makefile 2>/dev/null || true; cat vcpkg.json 2>/dev/null || true
+# The assumed path (dave/libdave/cpp/) turned up nothing on the first
+# inspection pass -- cat produced no output for either Makefile or
+# vcpkg.json, meaning neither exists there. Find out what's actually
+# in this checkout instead of guessing again.
+RUN echo "=== dave/ directory tree (3 levels) ===" && find dave -maxdepth 3 2>&1; \
+    echo "=== git submodule status ===" && git submodule status 2>&1; \
+    echo "=== searching whole repo for Makefile/vcpkg.json ===" && find . -iname "Makefile" -o -iname "vcpkg.json" 2>&1
 
 # --- Full build (commented out for the inspection pass) ---
 # Uncomment once Phase 3's inspection output confirms the cmake path below
